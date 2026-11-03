@@ -9,6 +9,8 @@ Every pair is one TDD cycle: write the test, run `uv run pytest` and see it fail
 - [ ] 1.2 impl (green): `Account`, `Transaction`, `Override` dataclasses with integer validation; verify 1.1 passes
 - [ ] 1.3 test (red): boolean is not a number - `amount=True` and `ts=False` raise; verify it fails because bools pass the int check
 - [ ] 1.4 impl (green): explicit bool rejection; verify the full suite passes
+- [ ] 1.5 test (red): incomplete operation currency is rejected - operation amount without currency and currency without amount both raise
+- [ ] 1.6 impl (green): both-or-neither check for operation fields; verify the full suite passes
 
 ## 2. Schema and migrations (`fin/db.py`, `tests/test_db_migrations.py`)
 
@@ -33,6 +35,8 @@ Every pair is one TDD cycle: write the test, run `uv run pytest` and see it fail
 - [ ] 3.10 impl (green): range query with ordering; verify the full suite passes
 - [ ] 3.11 test (red): payload round trip with non-ASCII, quotes and nesting; description `'); DROP TABLE transactions; --` stored literally and data intact
 - [ ] 3.12 impl (green): only if 3.11 fails - otherwise record that parameterized queries already satisfy it; verify the full suite passes
+- [ ] 3.13 test (red): purchase in a foreign currency keeps -84250 UAH and -2000 EUR; operation in the account currency reads back with empty operation fields
+- [ ] 3.14 impl (green): store and load `operation_amount`/`operation_currency`; verify the full suite passes
 
 ## 4. Sync progress and overrides (`fin/db.py`, `tests/test_db_state.py`)
 

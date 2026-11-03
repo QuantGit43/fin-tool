@@ -46,6 +46,7 @@ extra table; it stays isolated inside `migrate()` so a Postgres port can switch 
 ### Schema v1
 - `accounts(bank TEXT, account_id TEXT, type TEXT, currency TEXT, title TEXT, PRIMARY KEY(bank, account_id))`
 - `transactions(bank TEXT, txn_id TEXT, account_id TEXT, ts INTEGER, amount INTEGER, currency TEXT,
+  operation_amount INTEGER NULL, operation_currency TEXT NULL,
   description TEXT, mcc INTEGER NULL, bank_category TEXT NULL, raw TEXT,
   PRIMARY KEY(bank, txn_id), FOREIGN KEY(bank, account_id) REFERENCES accounts)`, index on `ts`.
 - `sync_state(bank TEXT, account_id TEXT, last_ts INTEGER, PRIMARY KEY(bank, account_id))`
@@ -53,9 +54,13 @@ extra table; it stays isolated inside `migrate()` so a Postgres port can switch 
   source TEXT CHECK(source IN ('user','llm')), updated_at INTEGER, PRIMARY KEY(bank, txn_id))`
   - No foreign key to `transactions`: an override must survive even if a bank transaction is re-imported,
     and the table is never written by bank upserts.
-- `amount` is in the account currency. Converted UAH amounts and the rates cache come in step 5 as
+- `amount` is in the account currency; `operation_amount`/`operation_currency` hold the original operation
+  (monobank `operationAmount`/`currencyCode`) when it differs, for display and trip analysis. Budgets and
+  reports never use them directly. Converted UAH amounts and the rates cache come in step 5 as
   migration v2 (`amount_uah` column + `rates` table).
 - Currency is ISO 4217 alphabetic code (`"UAH"`); sources convert monobank's numeric codes.
+- Amounts are in the currency's ISO 4217 minor units (2 decimals for UAH/USD/EUR, 0 for JPY); storage does
+  not interpret them. Formatting by currency exponent belongs to step 5/8.
 
 ### Idempotent upsert
 `INSERT ... ON CONFLICT(bank, txn_id) DO UPDATE SET <all bank fields> = excluded.<field>` - the same syntax
@@ -63,7 +68,8 @@ works on PostgreSQL. All values go through `?` placeholders; no SQL is ever buil
 
 ### Validation in the dataclasses
 `Transaction.__post_init__` rejects `amount`/`ts` that are not `int` or are `bool` (`isinstance(True, int)`
-is true in Python, hence the explicit check) and `mcc` that is neither `None` nor such an int. This is the
+is true in Python, hence the explicit check), `mcc`/`operation_amount` that are neither `None` nor such an
+int, and an `operation_amount` without `operation_currency` (or vice versa). This is the
 trust boundary every source passes through, so a float can never reach the database.
 
 ### Overrides

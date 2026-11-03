@@ -76,6 +76,24 @@ and timestamps only as whole UTC epoch seconds, and SHALL return them unchanged.
 - **WHEN** a transaction is created with an amount or timestamp given as true or false
 - **THEN** it is rejected with an error before anything is stored
 
+### Requirement: Operation currency is kept alongside account currency
+The system SHALL store, in addition to the amount in the account currency, the optional amount and currency
+of the operation itself (for example a purchase in EUR paid from a UAH account). Operation amount and
+operation currency SHALL be given together or not at all, and the operation amount SHALL be a whole number
+of minor units.
+
+#### Scenario: Purchase in a foreign currency
+- **WHEN** a transaction of -84250 UAH kopecks for an operation of -2000 EUR cents is saved and read back
+- **THEN** it has amount -84250 in UAH and operation amount -2000 in EUR
+
+#### Scenario: Operation in the account currency
+- **WHEN** a transaction without operation amount and operation currency is saved and read back
+- **THEN** both operation fields are empty
+
+#### Scenario: Incomplete operation currency is rejected
+- **WHEN** a transaction is created with an operation amount but no operation currency, or the other way round
+- **THEN** it is rejected with an error before anything is stored
+
 ### Requirement: Original bank payload is preserved
 The system SHALL store the original bank payload of each transaction as text and SHALL return it exactly
 as it was saved.
