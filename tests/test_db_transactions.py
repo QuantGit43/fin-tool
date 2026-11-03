@@ -130,3 +130,19 @@ def test_nothing_in_range(conn, account):
     db.upsert_transactions(conn, [make_txn(ts=1767225600)])
 
     assert db.load_transactions(conn, 1800000000, 1800086400) == []
+
+
+def test_payload_round_trip(conn, account):
+    payload = '{"description": "Сільпо \\"Кур\'єр\\"", "nested": {"tags": ["a", "б"], "n": 1.5}}'
+    db.upsert_transactions(conn, [make_txn(raw=payload)])
+
+    assert everything(conn)[0].raw == payload
+
+
+def test_description_that_looks_like_a_database_command(conn, account):
+    hostile = "'); DROP TABLE transactions; --"
+    db.upsert_transactions(conn, [make_txn(txn_id="t-1"), make_txn(txn_id="t-2", description=hostile)])
+
+    stored = everything(conn)
+    assert [t.description for t in stored] == ["Grocery store", hostile]
+    assert db.load_accounts(conn) == [make_account()]
