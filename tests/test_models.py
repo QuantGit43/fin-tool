@@ -21,3 +21,10 @@ def make_txn(**changes):
 def test_fractional_amount_is_rejected():
     with pytest.raises(TypeError, match="amount"):
         make_txn(amount=123.45)
+
+
+@pytest.mark.parametrize("field", ["amount", "ts"])
+@pytest.mark.parametrize("value", [True, False])
+def test_boolean_is_not_a_number(field, value):
+    with pytest.raises(TypeError, match=field):
+        make_txn(**{field: value})
