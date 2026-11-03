@@ -74,8 +74,9 @@ works on PostgreSQL. All values go through `?` placeholders; no SQL is ever buil
 
 ### Validation in the dataclasses
 `Transaction.__post_init__` rejects `amount`/`ts` that are not `int` or are `bool` (`isinstance(True, int)`
-is true in Python, hence the explicit check), `mcc`/`operation_amount` that are neither `None` nor such an
-int, and an `operation_amount` without `operation_currency` (or vice versa). `Account.__post_init__` rejects
+is true in Python, hence the explicit check), an `operation_amount` that is neither `None` nor such an int,
+and an `operation_amount` without `operation_currency` (or vice versa). `mcc` is not validated here: the
+spec does not require it and the database column is `INTEGER` in a `STRICT` table, which rejects text. `Account.__post_init__` rejects
 an unknown `kind`, non-integer `balance`/`goal`, and a `goal` on a non-jar account. This is the
 trust boundary every source passes through, so a float can never reach the database.
 

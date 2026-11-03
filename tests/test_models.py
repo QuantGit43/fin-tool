@@ -1,12 +1,6 @@
 import pytest
 
-from fin.models import Account, Transaction
-
-
-def make_account(**changes):
-    fields = dict(bank="mono", account_id="acc-1", kind="card", currency="UAH", title="Black card")
-    fields.update(changes)
-    return Account(**fields)
+from tests.factories import make_account, make_txn
 
 
 def test_unknown_account_kind_is_rejected():
@@ -29,21 +23,6 @@ def test_jar_with_goal_is_accepted():
 def test_fractional_balance_or_goal_is_rejected(field, value):
     with pytest.raises(TypeError, match=field):
         make_account(kind="jar", **{field: value})
-
-
-def make_txn(**changes):
-    fields = dict(
-        bank="mono",
-        account_id="acc-1",
-        txn_id="t-1",
-        ts=1767225600,
-        amount=-12345,
-        currency="UAH",
-        description="Grocery store",
-        raw="{}",
-    )
-    fields.update(changes)
-    return Transaction(**fields)
 
 
 def test_fractional_amount_is_rejected():

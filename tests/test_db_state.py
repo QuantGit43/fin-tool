@@ -1,14 +1,6 @@
-import pytest
-
 from fin import db
-from fin.models import Account, Override, Transaction
-
-
-@pytest.fixture
-def conn(tmp_path):
-    connection = db.connect(tmp_path / "fin.db")
-    yield connection
-    connection.close()
+from fin.models import Override
+from tests.factories import make_txn
 
 
 def test_never_synced(conn):
@@ -41,14 +33,9 @@ def test_no_override(conn):
     assert db.get_override(conn, "mono", "t-1") is None
 
 
-def test_override_kept_after_reimport(conn):
-    account = Account(bank="mono", account_id="acc-1", kind="card", currency="UAH", title="Black card")
-    txn = Transaction(
-        bank="mono", account_id="acc-1", txn_id="t-1", ts=1767225600, amount=-12345,
-        currency="UAH", description="Grocery store", raw="{}",
-    )
+def test_override_kept_after_reimport(conn, account):
+    txn = make_txn()
     override = Override(bank="mono", txn_id="t-1", updated_at=1767225600, category="Groceries")
-    db.upsert_accounts(conn, [account])
     db.upsert_transactions(conn, [txn])
     db.set_override(conn, override)
 

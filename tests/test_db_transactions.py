@@ -3,44 +3,11 @@ import sqlite3
 import pytest
 
 from fin import db
-from fin.models import Account, Transaction
-
-
-@pytest.fixture
-def conn(tmp_path):
-    connection = db.connect(tmp_path / "fin.db")
-    yield connection
-    connection.close()
-
-
-def make_account(**changes):
-    fields = dict(bank="mono", account_id="acc-1", kind="card", currency="UAH", title="Black card")
-    fields.update(changes)
-    return Account(**fields)
-
-
-def make_txn(**changes):
-    fields = dict(
-        bank="mono",
-        account_id="acc-1",
-        txn_id="t-1",
-        ts=1767225600,
-        amount=-12345,
-        currency="UAH",
-        description="Grocery store",
-        raw='{"id": "t-1"}',
-    )
-    fields.update(changes)
-    return Transaction(**fields)
+from tests.factories import make_account, make_txn
 
 
 def everything(conn):
     return db.load_transactions(conn, 0, 2**62)
-
-
-@pytest.fixture
-def account(conn):
-    db.upsert_accounts(conn, [make_account()])
 
 
 def test_saving_an_account_twice_keeps_one(conn):
