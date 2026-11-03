@@ -3,11 +3,12 @@
 Queries are always parameterized (`?`); no SQL is ever built from data.
 """
 
+import json
 import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 
-from fin.models import Account, Transaction
+from fin.models import Account, Override, Transaction
 
 # Schema version N = the first N scripts applied, tracked in PRAGMA user_version.
 MIGRATIONS = [
@@ -179,4 +180,41 @@ def set_sync_state(conn: sqlite3.Connection, bank: str, account_id: str, last_ts
             "INSERT INTO sync_state (bank, account_id, last_ts) VALUES (?, ?, ?) "
             "ON CONFLICT (bank, account_id) DO UPDATE SET last_ts = excluded.last_ts",
             (bank, account_id, last_ts),
+        )
+
+
+def get_override(conn: sqlite3.Connection, bank: str, txn_id: str) -> Override | None:
+    row = conn.execute(
+        "SELECT updated_at, category, note, tags, source FROM overrides WHERE bank = ? AND txn_id = ?",
+        (bank, txn_id),
+    ).fetchone()
+    if row is None:
+        return None
+    updated_at, category, note, tags, source = row
+    return Override(bank, txn_id, updated_at, category, note, tuple(json.loads(tags)), source)
+
+
+def set_override(conn: sqlite3.Connection, override: Override) -> None:
+    """Save the user's (or the LLM categorizer's) override; bank imports never write this table."""
+    with conn:
+        conn.execute(
+            """
+            INSERT INTO overrides (bank, txn_id, category, note, tags, source, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (bank, txn_id) DO UPDATE SET
+                category = excluded.category,
+                note = excluded.note,
+                tags = excluded.tags,
+                source = excluded.source,
+                updated_at = excluded.updated_at
+            """,
+            (
+                override.bank,
+                override.txn_id,
+                override.category,
+                override.note,
+                json.dumps(list(override.tags), ensure_ascii=False),
+                override.source,
+                override.updated_at,
+            ),
         )
