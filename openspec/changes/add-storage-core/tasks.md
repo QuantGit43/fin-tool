@@ -11,6 +11,8 @@ Every pair is one TDD cycle: write the test, run `uv run pytest` and see it fail
 - [ ] 1.4 impl (green): explicit bool rejection; verify the full suite passes
 - [ ] 1.5 test (red): incomplete operation currency is rejected - operation amount without currency and currency without amount both raise
 - [ ] 1.6 impl (green): both-or-neither check for operation fields; verify the full suite passes
+- [ ] 1.7 test (red): unknown account kind `deposit` is rejected; goal on a `card` is rejected; fractional balance or goal is rejected
+- [ ] 1.8 impl (green): `Account` validation of `kind`, `balance`, `goal`; verify the full suite passes
 
 ## 2. Schema and migrations (`fin/db.py`, `tests/test_db_migrations.py`)
 
@@ -24,7 +26,9 @@ Every pair is one TDD cycle: write the test, run `uv run pytest` and see it fail
 ## 3. Accounts and transactions (`fin/db.py`, `tests/test_db_transactions.py`)
 
 - [ ] 3.1 test (red): saving an account twice keeps one account with the new title
-- [ ] 3.2 impl (green): `upsert_accounts`; verify the full suite passes
+- [ ] 3.2 impl (green): `upsert_accounts`, `load_accounts`; verify the full suite passes
+- [ ] 3.2a test (red): all accounts listed in order; USD jar keeps kind, currency, balance 35000 and goal 100000; balance refreshed from 1000 to 2500
+- [ ] 3.2b impl (green): store and load `kind`, `balance`, `goal`; verify the full suite passes
 - [ ] 3.3 test (red): exact round trip - amount -12345 and ts 1767225600 read back unchanged
 - [ ] 3.4 impl (green): `upsert_transactions`, `load_transactions`; verify the full suite passes
 - [ ] 3.5 test (red): re-importing the same transaction stores one row; bank changed a transaction updates amount and description; same id in different banks stores both

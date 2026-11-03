@@ -36,6 +36,40 @@ exists SHALL update its type, currency and title instead of creating a second ac
 - **WHEN** an account is saved and then saved again with the same bank and account id but a new title
 - **THEN** exactly one account exists for that bank and account id and it has the new title
 
+#### Scenario: All accounts are listed
+- **WHEN** a card and a jar are saved and the accounts are read
+- **THEN** both are returned, ordered by bank and account id
+
+### Requirement: Accounts have a kind
+The system SHALL store each account's kind as one of `card` (a bank card or current account), `jar`
+(a monobank savings jar) or `file` (an account known only from an imported statement file), and SHALL
+reject any other kind.
+
+#### Scenario: Unknown kind is rejected
+- **WHEN** an account is created with the kind `deposit`
+- **THEN** it is rejected with an error before anything is stored
+
+### Requirement: Account balance and jar goal are kept
+The system SHALL store, for each account, its optional current balance in minor units of the account
+currency as of the last save, and, for jars, an optional savings goal in the same units. Saving the
+account again SHALL replace both values.
+
+#### Scenario: Jar in a foreign currency
+- **WHEN** a jar with currency USD, balance 35000 cents and goal 100000 cents is saved and read back
+- **THEN** it has kind `jar`, currency USD, balance 35000 and goal 100000
+
+#### Scenario: Balance is refreshed
+- **WHEN** an account is saved with balance 1000 and then saved again with balance 2500
+- **THEN** reading it returns balance 2500
+
+#### Scenario: Goal only for jars
+- **WHEN** an account of kind `card` is created with a goal
+- **THEN** it is rejected with an error before anything is stored
+
+#### Scenario: Fractional balance is rejected
+- **WHEN** an account is created with a balance or goal that is not a whole number
+- **THEN** it is rejected with an error before anything is stored
+
 ### Requirement: Transactions are saved idempotently
 The system SHALL identify a transaction by bank and bank transaction id. Saving a transaction that already
 exists SHALL replace its bank-provided fields with the new values and SHALL NOT create a duplicate.

@@ -26,6 +26,7 @@ planning). Alternative considered: SQLAlchemy Core - kept as the upgrade path if
 ### Public interface of `fin/db.py`
 - `connect(path) -> sqlite3.Connection` - opens the file (or `":memory:"`), enables foreign keys, runs `migrate`.
 - `migrate(conn)` - applies pending migrations; refuses newer schemas.
+- `load_accounts(conn) -> list[Account]` - ordered by bank and account id.
 - `upsert_accounts(conn, accounts)`, `upsert_transactions(conn, transactions)` - one transaction per call
   (`with conn:`), so a failing batch rolls back completely.
 - `load_transactions(conn, start_ts, end_ts) -> list[Transaction]` - half-open `[start, end)`.
@@ -44,7 +45,12 @@ version intact. Alternative considered: a `schema_version` table - equivalent, b
 extra table; it stays isolated inside `migrate()` so a Postgres port can switch to a table.
 
 ### Schema v1
-- `accounts(bank TEXT, account_id TEXT, type TEXT, currency TEXT, title TEXT, PRIMARY KEY(bank, account_id))`
+- `accounts(bank TEXT, account_id TEXT, kind TEXT CHECK(kind IN ('card','jar','file')), currency TEXT,
+  title TEXT, balance INTEGER NULL, goal INTEGER NULL, PRIMARY KEY(bank, account_id))`
+  - A monobank jar is an ordinary account of kind `jar`: its statement has the same shape as a card's, so
+    jar transactions need no special table. `balance` is a snapshot from the latest sync (cards and jars);
+    `goal` exists only for jars. `kind` is our own stable classification; monobank's card types (black,
+    white, iron, fop...) are not stored until a feature needs them.
 - `transactions(bank TEXT, txn_id TEXT, account_id TEXT, ts INTEGER, amount INTEGER, currency TEXT,
   operation_amount INTEGER NULL, operation_currency TEXT NULL,
   description TEXT, mcc INTEGER NULL, bank_category TEXT NULL, raw TEXT,
@@ -69,7 +75,8 @@ works on PostgreSQL. All values go through `?` placeholders; no SQL is ever buil
 ### Validation in the dataclasses
 `Transaction.__post_init__` rejects `amount`/`ts` that are not `int` or are `bool` (`isinstance(True, int)`
 is true in Python, hence the explicit check), `mcc`/`operation_amount` that are neither `None` nor such an
-int, and an `operation_amount` without `operation_currency` (or vice versa). This is the
+int, and an `operation_amount` without `operation_currency` (or vice versa). `Account.__post_init__` rejects
+an unknown `kind`, non-integer `balance`/`goal`, and a `goal` on a non-jar account. This is the
 trust boundary every source passes through, so a float can never reach the database.
 
 ### Overrides
