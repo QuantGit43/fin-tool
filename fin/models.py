@@ -6,6 +6,8 @@ time is always integer UTC epoch seconds.
 
 from dataclasses import dataclass
 
+ACCOUNT_KINDS = ("card", "jar", "file")
+
 
 def _require_int(name, value):
     # bool is a subclass of int in Python, so True would otherwise pass as 1
@@ -22,6 +24,16 @@ class Account:
     title: str
     balance: int | None = None
     goal: int | None = None
+
+    def __post_init__(self):
+        if self.kind not in ACCOUNT_KINDS:
+            raise ValueError(f"kind must be one of {ACCOUNT_KINDS}, got {self.kind!r}")
+        if self.goal is not None and self.kind != "jar":
+            raise ValueError("goal is only allowed for jars")
+        for name in ("balance", "goal"):
+            value = getattr(self, name)
+            if value is not None:
+                _require_int(name, value)
 
 
 @dataclass(frozen=True)
