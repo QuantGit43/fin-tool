@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 
-from fin.models import Account
+from fin.models import Account, Transaction
 
 # Schema version N = the first N scripts applied, tracked in PRAGMA user_version.
 MIGRATIONS = [
@@ -126,3 +126,24 @@ def load_accounts(conn: sqlite3.Connection) -> list[Account]:
         "ORDER BY bank, account_id"
     )
     return [Account(*row) for row in rows]
+
+
+# Same order as the Transaction dataclass fields.
+_TRANSACTION_COLUMNS = (
+    "bank", "account_id", "txn_id", "ts", "amount", "currency", "description", "raw",
+    "mcc", "bank_category", "operation_amount", "operation_currency",
+)
+
+
+def upsert_transactions(conn: sqlite3.Connection, transactions: Iterable[Transaction]) -> None:
+    with conn:
+        conn.executemany(
+            f"INSERT INTO transactions ({', '.join(_TRANSACTION_COLUMNS)}) "
+            f"VALUES ({', '.join('?' * len(_TRANSACTION_COLUMNS))})",
+            [tuple(getattr(t, c) for c in _TRANSACTION_COLUMNS) for t in transactions],
+        )
+
+
+def load_transactions(conn: sqlite3.Connection, start_ts: int, end_ts: int) -> list[Transaction]:
+    rows = conn.execute(f"SELECT {', '.join(_TRANSACTION_COLUMNS)} FROM transactions")
+    return [Transaction(*row) for row in rows]
