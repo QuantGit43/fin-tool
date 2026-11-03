@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 
 from fin import db
@@ -100,3 +102,13 @@ def test_same_id_in_different_banks(conn, account):
     db.upsert_transactions(conn, [mono, privat])
 
     assert sorted(everything(conn), key=lambda t: t.bank) == [mono, privat]
+
+
+def test_unknown_account_rejects_the_whole_batch(conn, account):
+    good = make_txn(txn_id="t-good")
+    orphan = make_txn(txn_id="t-orphan", account_id="never-saved")
+
+    with pytest.raises(sqlite3.IntegrityError):
+        db.upsert_transactions(conn, [good, orphan])
+
+    assert everything(conn) == []
