@@ -4,7 +4,10 @@ Queries are always parameterized (`?`); no SQL is ever built from data.
 """
 
 import sqlite3
+from collections.abc import Iterable
 from pathlib import Path
+
+from fin.models import Account
 
 # Schema version N = the first N scripts applied, tracked in PRAGMA user_version.
 MIGRATIONS = [
@@ -94,3 +97,32 @@ def migrate(conn: sqlite3.Connection) -> None:
             if conn.in_transaction:
                 conn.execute("ROLLBACK")
             raise
+
+
+_ACCOUNT_COLUMNS = ("bank", "account_id", "kind", "currency", "title", "balance", "goal")
+
+
+def upsert_accounts(conn: sqlite3.Connection, accounts: Iterable[Account]) -> None:
+    """Insert accounts or update the existing ones (same bank and account id)."""
+    with conn:
+        conn.executemany(
+            """
+            INSERT INTO accounts (bank, account_id, kind, currency, title, balance, goal)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (bank, account_id) DO UPDATE SET
+                kind = excluded.kind,
+                currency = excluded.currency,
+                title = excluded.title,
+                balance = excluded.balance,
+                goal = excluded.goal
+            """,
+            [tuple(getattr(a, c) for c in _ACCOUNT_COLUMNS) for a in accounts],
+        )
+
+
+def load_accounts(conn: sqlite3.Connection) -> list[Account]:
+    rows = conn.execute(
+        "SELECT bank, account_id, kind, currency, title, balance, goal FROM accounts "
+        "ORDER BY bank, account_id"
+    )
+    return [Account(*row) for row in rows]
