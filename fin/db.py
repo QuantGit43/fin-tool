@@ -163,3 +163,20 @@ def load_transactions(conn: sqlite3.Connection, start_ts: int, end_ts: int) -> l
         (start_ts, end_ts),
     )
     return [Transaction(*row) for row in rows]
+
+
+def get_sync_state(conn: sqlite3.Connection, bank: str, account_id: str) -> int | None:
+    """Timestamp up to which the account has been synced, or None if never synced."""
+    row = conn.execute(
+        "SELECT last_ts FROM sync_state WHERE bank = ? AND account_id = ?", (bank, account_id)
+    ).fetchone()
+    return row[0] if row else None
+
+
+def set_sync_state(conn: sqlite3.Connection, bank: str, account_id: str, last_ts: int) -> None:
+    with conn:
+        conn.execute(
+            "INSERT INTO sync_state (bank, account_id, last_ts) VALUES (?, ?, ?) "
+            "ON CONFLICT (bank, account_id) DO UPDATE SET last_ts = excluded.last_ts",
+            (bank, account_id, last_ts),
+        )
