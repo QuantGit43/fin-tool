@@ -77,3 +77,26 @@ def test_exact_round_trip(conn, account):
     db.upsert_transactions(conn, [txn])
 
     assert everything(conn) == [txn]
+
+
+def test_reimporting_the_same_transaction(conn, account):
+    db.upsert_transactions(conn, [make_txn()])
+    db.upsert_transactions(conn, [make_txn()])
+
+    assert everything(conn) == [make_txn()]
+
+
+def test_bank_changed_a_transaction(conn, account):
+    db.upsert_transactions(conn, [make_txn(amount=-100, description="Pending")])
+    db.upsert_transactions(conn, [make_txn(amount=-150, description="Final")])
+
+    assert everything(conn) == [make_txn(amount=-150, description="Final")]
+
+
+def test_same_id_in_different_banks(conn, account):
+    db.upsert_accounts(conn, [make_account(bank="privat", kind="file")])
+    mono = make_txn(bank="mono")
+    privat = make_txn(bank="privat")
+    db.upsert_transactions(conn, [mono, privat])
+
+    assert sorted(everything(conn), key=lambda t: t.bank) == [mono, privat]
