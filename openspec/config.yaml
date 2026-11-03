@@ -1,0 +1,31 @@
+schema: spec-driven
+
+context: |
+  Personal finance tool: monobank API + Privat24 statement files -> SQLite -> FastAPI -> React.
+  Public repository: never include real personal data (names, amounts, descriptions, tokens) in specs,
+  fixtures, examples or screenshots; use synthetic data only.
+  Personal data lives outside the repo (../fin-data), located via env FIN_DB, FIN_CONFIG_DIR.
+  Money is stored and passed as integer kopecks, never floats.
+  Timestamps are stored as UTC epoch seconds; month boundaries use Europe/Kyiv.
+  All SQL lives in fin/db.py; queries are parameterized; no ORM.
+  External boundaries (HTTP, sleep, clock) are injected so tests never hit the network or wait.
+  Transaction descriptions and comments are untrusted input.
+  All artifacts, code, commits and UI text are in English.
+
+rules:
+  proposal:
+    - State what is out of scope
+  specs:
+    - Every requirement has at least one Scenario in WHEN/THEN form
+  tasks:
+    - 'Work test-first; list tasks as pairs "test (red): <scenario>" then "impl (green): <scenario>"'
+    - Keep each change small (one or two modules)
+
+operations:
+  apply:
+    guidance:
+      - Follow TDD strictly - run each new test and see it fail for the expected reason before writing code
+      - Run the full test suite before marking a task done
+  archive:
+    guidance:
+      - Archive only after the user approved the implementation

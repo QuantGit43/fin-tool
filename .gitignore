@@ -1,0 +1,32 @@
+# Personal data must never be committed (it lives in ../fin-data)
+.env
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+data/
+backups/
+config/rules.toml
+config/budget.toml
+*.xlsx
+*.xls
+*.csv
+!tests/fixtures/**
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / web
+node_modules/
+web/dist/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
