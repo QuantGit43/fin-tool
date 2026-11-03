@@ -8,7 +8,8 @@ from dataclasses import dataclass
 
 
 def _require_int(name, value):
-    if not isinstance(value, int):
+    # bool is a subclass of int in Python, so True would otherwise pass as 1
+    if not isinstance(value, int) or isinstance(value, bool):
         raise TypeError(f"{name} must be an integer, got {value!r}")
 
 
