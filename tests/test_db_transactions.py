@@ -1,7 +1,7 @@
 import pytest
 
 from fin import db
-from fin.models import Account
+from fin.models import Account, Transaction
 
 
 @pytest.fixture
@@ -15,6 +15,30 @@ def make_account(**changes):
     fields = dict(bank="mono", account_id="acc-1", kind="card", currency="UAH", title="Black card")
     fields.update(changes)
     return Account(**fields)
+
+
+def make_txn(**changes):
+    fields = dict(
+        bank="mono",
+        account_id="acc-1",
+        txn_id="t-1",
+        ts=1767225600,
+        amount=-12345,
+        currency="UAH",
+        description="Grocery store",
+        raw='{"id": "t-1"}',
+    )
+    fields.update(changes)
+    return Transaction(**fields)
+
+
+def everything(conn):
+    return db.load_transactions(conn, 0, 2**62)
+
+
+@pytest.fixture
+def account(conn):
+    db.upsert_accounts(conn, [make_account()])
 
 
 def test_saving_an_account_twice_keeps_one(conn):
@@ -46,3 +70,10 @@ def test_balance_is_refreshed(conn):
     db.upsert_accounts(conn, [make_account(balance=2500)])
 
     assert db.load_accounts(conn)[0].balance == 2500
+
+
+def test_exact_round_trip(conn, account):
+    txn = make_txn(amount=-12345, ts=1767225600)
+    db.upsert_transactions(conn, [txn])
+
+    assert everything(conn) == [txn]
