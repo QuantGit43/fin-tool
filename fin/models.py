@@ -42,6 +42,10 @@ class Transaction:
     def __post_init__(self):
         _require_int("ts", self.ts)
         _require_int("amount", self.amount)
+        if (self.operation_amount is None) != (self.operation_currency is None):
+            raise ValueError("operation_amount and operation_currency must be given together")
+        if self.operation_amount is not None:
+            _require_int("operation_amount", self.operation_amount)
 
 
 @dataclass(frozen=True)
