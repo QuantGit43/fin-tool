@@ -63,17 +63,30 @@ MIGRATIONS = [
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
+class SchemaVersionError(RuntimeError):
+    """The database was created by a newer version of fin-tool."""
+
+
 def connect(path: str | Path) -> sqlite3.Connection:
     """Open (or create) the database at `path` and bring its schema up to date."""
     conn = sqlite3.connect(path)
-    conn.execute("PRAGMA foreign_keys = ON")
-    migrate(conn)
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        migrate(conn)
+    except Exception:
+        conn.close()
+        raise
     return conn
 
 
 def migrate(conn: sqlite3.Connection) -> None:
     """Apply pending migrations, each together with its version bump in one transaction."""
     version = conn.execute("PRAGMA user_version").fetchone()[0]
+    if version > SCHEMA_VERSION:
+        raise SchemaVersionError(
+            f"database schema version {version} is newer than supported version {SCHEMA_VERSION}; "
+            "update fin-tool instead of opening this database with an older version"
+        )
     for number, script in enumerate(MIGRATIONS[version:], start=version + 1):
         try:
             conn.executescript(f"BEGIN; {script}; PRAGMA user_version = {number}; COMMIT;")
