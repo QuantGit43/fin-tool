@@ -135,11 +135,22 @@ _TRANSACTION_COLUMNS = (
 )
 
 
+_KEY_COLUMNS = ("bank", "txn_id")
+
+# Built once from the constant column names above, never from data.
+_UPSERT_TRANSACTION = (
+    f"INSERT INTO transactions ({', '.join(_TRANSACTION_COLUMNS)}) "
+    f"VALUES ({', '.join('?' * len(_TRANSACTION_COLUMNS))}) "
+    f"ON CONFLICT ({', '.join(_KEY_COLUMNS)}) DO UPDATE SET "
+    + ", ".join(f"{c} = excluded.{c}" for c in _TRANSACTION_COLUMNS if c not in _KEY_COLUMNS)
+)
+
+
 def upsert_transactions(conn: sqlite3.Connection, transactions: Iterable[Transaction]) -> None:
+    """Insert transactions or replace the bank fields of existing ones (same bank and txn id)."""
     with conn:
         conn.executemany(
-            f"INSERT INTO transactions ({', '.join(_TRANSACTION_COLUMNS)}) "
-            f"VALUES ({', '.join('?' * len(_TRANSACTION_COLUMNS))})",
+            _UPSERT_TRANSACTION,
             [tuple(getattr(t, c) for c in _TRANSACTION_COLUMNS) for t in transactions],
         )
 
