@@ -156,5 +156,10 @@ def upsert_transactions(conn: sqlite3.Connection, transactions: Iterable[Transac
 
 
 def load_transactions(conn: sqlite3.Connection, start_ts: int, end_ts: int) -> list[Transaction]:
-    rows = conn.execute(f"SELECT {', '.join(_TRANSACTION_COLUMNS)} FROM transactions")
+    """Transactions with start_ts <= ts < end_ts, ordered by time, then bank and txn id."""
+    rows = conn.execute(
+        f"SELECT {', '.join(_TRANSACTION_COLUMNS)} FROM transactions "
+        "WHERE ts >= ? AND ts < ? ORDER BY ts, bank, txn_id",
+        (start_ts, end_ts),
+    )
     return [Transaction(*row) for row in rows]
