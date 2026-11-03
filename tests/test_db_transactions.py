@@ -112,3 +112,21 @@ def test_unknown_account_rejects_the_whole_batch(conn, account):
         db.upsert_transactions(conn, [good, orphan])
 
     assert everything(conn) == []
+
+
+def test_half_open_range(conn, account):
+    start, end = 1767225600, 1769904000  # 2026-01-01 and 2026-02-01, 00:00 UTC
+    at_start = make_txn(txn_id="t-start", ts=start)
+    inside_b = make_txn(txn_id="t-b", ts=start + 3600)
+    inside_a = make_txn(txn_id="t-a", ts=start + 3600)
+    at_end = make_txn(txn_id="t-end", ts=end)
+    before = make_txn(txn_id="t-before", ts=start - 1)
+    db.upsert_transactions(conn, [at_end, inside_b, before, inside_a, at_start])
+
+    assert db.load_transactions(conn, start, end) == [at_start, inside_a, inside_b]
+
+
+def test_nothing_in_range(conn, account):
+    db.upsert_transactions(conn, [make_txn(ts=1767225600)])
+
+    assert db.load_transactions(conn, 1800000000, 1800086400) == []
