@@ -1,6 +1,34 @@
 import pytest
 
-from fin.models import Transaction
+from fin.models import Account, Transaction
+
+
+def make_account(**changes):
+    fields = dict(bank="mono", account_id="acc-1", kind="card", currency="UAH", title="Black card")
+    fields.update(changes)
+    return Account(**fields)
+
+
+def test_unknown_account_kind_is_rejected():
+    with pytest.raises(ValueError, match="kind"):
+        make_account(kind="deposit")
+
+
+def test_goal_only_for_jars():
+    with pytest.raises(ValueError, match="goal"):
+        make_account(kind="card", goal=100000)
+
+
+def test_jar_with_goal_is_accepted():
+    jar = make_account(kind="jar", currency="USD", balance=35000, goal=100000)
+    assert jar.goal == 100000
+
+
+@pytest.mark.parametrize("field", ["balance", "goal"])
+@pytest.mark.parametrize("value", [12.5, True])
+def test_fractional_balance_or_goal_is_rejected(field, value):
+    with pytest.raises(TypeError, match=field):
+        make_account(kind="jar", **{field: value})
 
 
 def make_txn(**changes):
