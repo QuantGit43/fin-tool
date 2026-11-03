@@ -146,3 +146,19 @@ def test_description_that_looks_like_a_database_command(conn, account):
     stored = everything(conn)
     assert [t.description for t in stored] == ["Grocery store", hostile]
     assert db.load_accounts(conn) == [make_account()]
+
+
+def test_purchase_in_a_foreign_currency(conn, account):
+    txn = make_txn(amount=-84250, currency="UAH", operation_amount=-2000, operation_currency="EUR")
+    db.upsert_transactions(conn, [txn])
+
+    [stored] = everything(conn)
+    assert (stored.amount, stored.currency) == (-84250, "UAH")
+    assert (stored.operation_amount, stored.operation_currency) == (-2000, "EUR")
+
+
+def test_operation_in_the_account_currency(conn, account):
+    db.upsert_transactions(conn, [make_txn()])
+
+    [stored] = everything(conn)
+    assert (stored.operation_amount, stored.operation_currency) == (None, None)
